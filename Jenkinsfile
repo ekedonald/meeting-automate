@@ -34,15 +34,33 @@ pipeline {
                         pip install -r requirements.txt
                         
                         # Get secret from AWS and save to credentials.json
-                        aws secretsmanager get-secret-value --secret-id nso-scheduler-generator --region us-east-1 | jq -r '.SecretString' > credentials.json
+                        echo "Fetching secret from AWS Secrets Manager..."
+                        aws secretsmanager get-secret-value \
+                            --secret-id nso-scheduler-generator \
+                            --region us-east-1 \
+                            --query SecretString \
+                            --output text > credentials.json
                         
-                        # Verify credentials file was created
+                        # Verify credentials file was created and is not empty
                         if [ ! -f credentials.json ]; then
                             echo "ERROR: credentials.json was not created"
                             exit 1
                         fi
                         
-                        echo "Credentials file created successfully"
+                        if [ ! -s credentials.json ]; then
+                            echo "ERROR: credentials.json is empty"
+                            exit 1
+                        fi
+                        
+                        # Validate JSON format
+                        if ! python3 -m json.tool credentials.json > /dev/null 2>&1; then
+                            echo "ERROR: credentials.json is not valid JSON"
+                            echo "Content of credentials.json:"
+                            cat credentials.json
+                            exit 1
+                        fi
+                        
+                        echo "Credentials file created and validated successfully"
                         
                         # Run the Python script
                         python3 google_meeting_generator.py
