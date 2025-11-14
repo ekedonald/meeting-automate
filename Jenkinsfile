@@ -56,11 +56,7 @@ pipeline {
                     echo "Getting Secrets from AWS Secrets Manager"
                     def JSON_FILE_PATH = 'credentials.json'
                     
-                    def secret = sh(
-                        returnStdout: true, 
-                        script: "aws secretsmanager get-secret-value --secret-id nso-scheduler-generator --region us-east-1 | jq -r '.SecretString'"
-                    ).trim()
-            
+                    def secret = sh(returnStdout: true, script: '''aws secretsmanager get-secret-value --secret-id nso-scheduler-generator --region us-east-1 | jq -r '.SecretString' ''').trim()
                     def secretJson = readJSON text: secret
 
                     // Directly access the attributes from the JSON response
