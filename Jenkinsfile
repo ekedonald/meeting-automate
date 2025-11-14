@@ -3,7 +3,7 @@
 def installPrereq() {
     dir("${WORKSPACE}") {
         sh """
-        python --version
+        python3 --version
         pip install -r requirements.txt
         """
     }
