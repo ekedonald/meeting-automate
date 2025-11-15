@@ -69,13 +69,18 @@ pipeline {
                         echo "Getting Service Account Credentials from AWS Secrets Manager"
                         
                         // Fetch secret and write directly to file (preserves all formatting)
-                        sh """
-                            aws secretsmanager get-secret-value \
-                                --secret-id ${SECRET_NAME} \
-                                --region ${REGION} \
-                                --query SecretString \
-                                --output text > ${JSON_FILE_PATH}
-                        """
+                        def secret = sh(
+                            returnStdout: true,
+                            script: """
+                                aws secretsmanager get-secret-value \
+                                    --secret-id ${SECRET_NAME} \
+                                    --region ${REGION} \
+                                    | jq -r '.SecretString'
+                            """
+                        ).trim()
+                        
+                        // Write the secret directly to file
+                        writeFile file: JSON_FILE_PATH, text: secret
                         
                         def currentDir = pwd()
                         echo "Current Directory: ${currentDir}"
