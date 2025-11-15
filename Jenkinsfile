@@ -87,27 +87,10 @@ pipeline {
                         
                         // List directory contents
                         sh 'ls -al'
+
+                        def filePath = 'credentials.json'
+                        def fileContents = readFile(filePath)
                         
-                        // Verify the credentials file exists and is valid JSON
-                        sh """
-                            if [ ! -f ${JSON_FILE_PATH} ]; then
-                                echo "ERROR: ${JSON_FILE_PATH} was not created"
-                                exit 1
-                            fi
-                            
-                            if [ ! -s ${JSON_FILE_PATH} ]; then
-                                echo "ERROR: ${JSON_FILE_PATH} is empty"
-                                exit 1
-                            fi
-                            
-                            # Validate JSON format
-                            if python3 -m json.tool ${JSON_FILE_PATH} > /dev/null 2>&1; then
-                                echo "Credentials file validated successfully"
-                            else
-                                echo "ERROR: ${JSON_FILE_PATH} is not valid JSON"
-                                exit 1
-                            fi
-                        """
                         
                         try {
                             echo "Running Python script"
