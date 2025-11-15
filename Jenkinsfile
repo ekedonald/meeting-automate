@@ -3,10 +3,10 @@
 def installPrereq() {
     dir("${WORKSPACE}") {
         sh """
-        python3 --version
-        python3 -m venv venv
-        . venv/bin/activate
-        pip install -r requirements.txt
+            python3 --version
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
         """
     }
 }
@@ -14,16 +14,14 @@ def installPrereq() {
 def createMeeting() {
     dir("${WORKSPACE}") {
         sh """
-        python3 google_meeting_generator.py
+            python3 google_meeting_generator.py
         """
     }
 }
 
-
-
-// Add the cron schedule to properties.
+// Add the cron schedule to properties
 properties([
-    pipelineTriggers([cron('0 8 * * 3')]),  // Runs Wednesday at 8 am PST
+    pipelineTriggers([cron('0 8 * * 3')]),  // Runs Wednesday at 8 AM PST
     disableConcurrentBuilds(),
     buildDiscarder(
         logRotator(
@@ -41,12 +39,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo("INFO: Checking out ${env.BRANCH_NAME}")
+                echo "INFO: Checking out ${env.BRANCH_NAME}"
                 checkout scm
             }
         }
         
-        stage('Install Pre Reqs') {
+        stage('Install Prerequisites') {
             steps {
                 script {
                     installPrereq()
@@ -54,10 +52,9 @@ pipeline {
             }
         }
         
-        stage('Get Secret and Run') {
+        stage('Get Secret and Run Script') {
             steps {
                 script {
-                    // Use your AWS credentials to fetch the secret
                     withCredentials([[
                         $class: 'AmazonWebServicesCredentialsBinding',
                         credentialsId: 'aws-credentials',
@@ -70,52 +67,48 @@ pipeline {
                         
                         echo "Getting Service Account Credentials from AWS Secrets Manager"
                         
-                        // Fetch secret and parse it
-                        def secret = sh(
-                            returnStdout: true, 
-                            script: """
-                                aws secretsmanager get-secret-value \
-                                    --secret-id ${SECRET_NAME} \
-                                    --region ${REGION} \
-                                    | jq -r '.SecretString'
-                            """
-                        ).trim()
-                        
-                        def secretJson = readJSON text: secret
-                        
-                        // Create the service account JSON content
-                        def jsonContent = """{
-                            "type": "${secretJson.type}",
-                            "project_id": "${secretJson.project_id}",
-                            "private_key_id": "${secretJson.private_key_id}",
-                            "private_key": "${secretJson.private_key}",
-                            "client_email": "${secretJson.client_email}",
-                            "client_id": "${secretJson.client_id}",
-                            "auth_uri": "${secretJson.auth_uri}",
-                            "token_uri": "${secretJson.token_uri}",
-                            "auth_provider_x509_cert_url": "${secretJson.auth_provider_x509_cert_url}",
-                            "client_x509_cert_url": "${secretJson.client_x509_cert_url}"
-                        }
+                        // Fetch secret and write directly to file (preserves all formatting)
+                        sh """
+                            aws secretsmanager get-secret-value \
+                                --secret-id ${SECRET_NAME} \
+                                --region ${REGION} \
+                                --query SecretString \
+                                --output text > ${JSON_FILE_PATH}
                         """
-                        
-                        // Write the JSON content to a file
-                        writeFile file: JSON_FILE_PATH, text: jsonContent
                         
                         def currentDir = pwd()
                         echo "Current Directory: ${currentDir}"
                         
-                        // List the contents of the current directory
+                        // List directory contents
                         sh 'ls -al'
                         
                         // Verify the credentials file exists and is valid JSON
-                        sh 'python3 -m json.tool credentials.json > /dev/null'
+                        sh """
+                            if [ ! -f ${JSON_FILE_PATH} ]; then
+                                echo "ERROR: ${JSON_FILE_PATH} was not created"
+                                exit 1
+                            fi
+                            
+                            if [ ! -s ${JSON_FILE_PATH} ]; then
+                                echo "ERROR: ${JSON_FILE_PATH} is empty"
+                                exit 1
+                            fi
+                            
+                            # Validate JSON format
+                            if python3 -m json.tool ${JSON_FILE_PATH} > /dev/null 2>&1; then
+                                echo "Credentials file validated successfully"
+                            else
+                                echo "ERROR: ${JSON_FILE_PATH} is not valid JSON"
+                                exit 1
+                            fi
+                        """
                         
                         try {
                             echo "Running Python script"
                             createMeeting()
                         } finally {
                             // Clean up sensitive credential file
-                            sh 'rm -f credentials.json'
+                            sh "rm -f ${JSON_FILE_PATH}"
                             echo "Cleaned up credentials file"
                         }
                     }
