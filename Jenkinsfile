@@ -14,6 +14,7 @@ def installPrereq() {
 def createMeeting() {
     dir("${WORKSPACE}") {
         sh """
+            . venv/bin/activate
             python3 google_meeting_generator.py
         """
     }
