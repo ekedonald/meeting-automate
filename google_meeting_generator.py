@@ -11,7 +11,7 @@ from googleapiclient.errors import HttpError
 from datetime import date
 from datetime import timedelta
 from calendar import TUESDAY
-from pagerduty_user_picker import *
+# from pagerduty_user_picker import *
 
 # To start this script, 
 # cd /Users/zachsimon/Documents/code/Oncall Meeting Scheduler
