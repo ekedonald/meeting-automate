@@ -86,8 +86,7 @@ pipeline {
                         
                         // List directory contents
                         sh 'ls -al'
-                        def filePath = 'credentials.json'
-                        def fileContents = readFile(filePath)
+                        def fileContents = readFile(JSON_FILE_PATH)
                     }
                 }
             }
