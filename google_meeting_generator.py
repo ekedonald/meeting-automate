@@ -2,16 +2,16 @@ from __future__ import print_function
 
 import datetime
 import os.path
+import json
 
 from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import date
 from datetime import timedelta
 from calendar import TUESDAY
-# from pagerduty_user_picker import *
+from pagerduty_user_picker import *
 
 # To start this script, 
 # cd /Users/zachsimon/Documents/code/Oncall Meeting Scheduler
@@ -33,7 +33,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 # Time zone is not needed in the format if it is provided separately (and it is below)
 EVENT = {
     'summary': 'Oncall Handoff',
-    'description': 'Last week\'s pager notes can be found here: ',
+    'description': 'Last week\'s pager notes can be found here: https://life360.atlassian.net/wiki/spaces/CLOUDOPS/pages/2282422592/Platform+On-Call+Pager+Notes',
     'start': {
         'dateTime': 'start_time',
         'timeZone': 'America/Los_Angeles',
@@ -54,24 +54,16 @@ EVENT = {
 
 def main():
     """Shows basic usage of the Google Calendar API.
-    Prints the start and name of the next 10 events on the user's calendar.
+    Creates calendar events using service account credentials.
     """
-    creds = None
-    # The file credentials.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('credentials.json'):
-        creds = Credentials.from_authorized_user_file('credentials.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            # Save the refreshed credentials back to credentials.json
-            with open('credentials.json', 'w') as token:
-                token.write(creds.to_json())
-        else:
-            # In Jenkins, we should always have valid credentials from AWS Secrets Manager
-            raise Exception("Invalid credentials in credentials.json. Please check AWS Secrets Manager.")
+    # Load service account credentials from credentials.json
+    if not os.path.exists('credentials.json'):
+        raise Exception("credentials.json not found. Please check AWS Secrets Manager.")
+    
+    creds = service_account.Credentials.from_service_account_file(
+        'credentials.json',
+        scopes=SCOPES
+    )
 
     update_event_with_correct_date_and_time()
 
