@@ -1,5 +1,4 @@
 #!groovy
-
 def installPrereq() {
     dir("${WORKSPACE}") {
         sh """
@@ -53,7 +52,7 @@ pipeline {
             }
         }
         
-        stage('Get Secret and Run Script') {
+        stage('Get Secret') {
             steps {
                 script {
                     withCredentials([[
@@ -87,19 +86,23 @@ pipeline {
                         
                         // List directory contents
                         sh 'ls -al'
-
                         def filePath = 'credentials.json'
                         def fileContents = readFile(filePath)
-                        
-                        
-                        try {
-                            echo "Running Python script"
-                            createMeeting()
-                        } finally {
-                            // Clean up sensitive credential file
-                            sh "rm -f ${JSON_FILE_PATH}"
-                            echo "Cleaned up credentials file"
-                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Run Script') {
+            steps {
+                script {
+                    try {
+                        echo "Running python script"
+                        createMeeting()
+                    } finally {
+                        // Clean up sensitive credential file
+                        sh "rm -f credentials.json"
+                        echo "Cleaned up credentials file"
                     }
                 }
             }
