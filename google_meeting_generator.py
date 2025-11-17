@@ -13,17 +13,8 @@ from datetime import timedelta
 from calendar import TUESDAY
 # from pagerduty_user_picker import *
 
-# To start this script, 
-# cd /Users/zachsimon/Documents/code/Oncall Meeting Scheduler
-# Then run 
-# `source "/Users/zachsimon/Documents/code/Oncall Meeting Scheduler/.venv/bin/activate"`
-# Then run
-# pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
-# Then run
-# python3 google_meeting_generator.py
-
-# If you need help, check out this Google article that was the basis for this script:
-# https://developers.google.com/calendar/api/quickstart/python
+# Configuration
+WORKSPACE_EMAIL = 'oike@sapanetwork.com'  # The user to impersonate
 
 # If modifying these scopes, delete the file credentials.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -64,14 +55,17 @@ def main():
         'credentials.json',
         scopes=SCOPES
     )
+    
+    # CRITICAL: Add domain-wide delegation to impersonate a user
+    creds = creds.with_subject(WORKSPACE_EMAIL)
 
     update_event_with_correct_date_and_time()
 
+    # Comment out PagerDuty functionality for testing
     # urls = create_urls()
     # responses = get_responses(urls)
     # user_emails = get_user_emails(responses)
-    # # print(user_emails)
-
+    # print(user_emails)
     # update_event_attendees(user_emails)
 
     try:
@@ -80,25 +74,9 @@ def main():
         event = service.events().insert(calendarId='primary', body=EVENT).execute()
         print('Event created: %s' % (event.get('htmlLink')))
 
-        # # Call the Calendar API
-        # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        # print('Getting the upcoming 10 events')
-        # events_result = service.events().list(calendarId='primary', timeMin=now,
-        #                                       maxResults=10, singleEvents=True,
-        #                                       orderBy='startTime').execute()
-        # events = events_result.get('items', [])
-
-        # if not events:
-        #     print('No upcoming events found.')
-        #     return
-
-        # # Prints the start and name of the next 10 events
-        # for event in events:
-        #     start = event['start'].get('dateTime', event['start'].get('date'))
-        #     print(start, event['summary'])
-
     except HttpError as error:
         print('An error occurred: %s' % error)
+
 
 def update_event_with_correct_date_and_time():
     today = date.today()
@@ -109,11 +87,13 @@ def update_event_with_correct_date_and_time():
     EVENT['start']['dateTime'] = f'{meeting_day}T10:00:00'
     EVENT['end']['dateTime'] = f'{meeting_day}T10:30:00'
 
+
 def update_event_attendees(user_emails):
     user_emails_as_list_of_dicts = []
     for email in user_emails:
         user_emails_as_list_of_dicts.append({'email': email})
     EVENT['attendees'] = EVENT['attendees'] + user_emails_as_list_of_dicts
+
 
 if __name__ == '__main__':
     main()
