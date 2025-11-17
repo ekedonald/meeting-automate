@@ -67,12 +67,12 @@ def main():
 
     update_event_with_correct_date_and_time()
 
-    urls = create_urls()
-    responses = get_responses(urls)
-    user_emails = get_user_emails(responses)
-    # print(user_emails)
+    # urls = create_urls()
+    # responses = get_responses(urls)
+    # user_emails = get_user_emails(responses)
+    # # print(user_emails)
 
-    update_event_attendees(user_emails)
+    # update_event_attendees(user_emails)
 
     try:
         # print(EVENT)
